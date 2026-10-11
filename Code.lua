@@ -1,15 +1,10 @@
---[[
- .____                  ________ ___.    _____                           __                
- |    |    __ _______   \_____  \\_ |___/ ____\_ __  ______ ____ _____ _/  |_  ___________ 
- |    |   |  |  \__  \   /   |   \| __ \   __\  |  \/  ___// ___\\__  \\   __\/  _ \_  __ \
- |    |___|  |  // __ \_/    |    \ \_\ \  | |  |  /\___ \\  \___ / __ \|  | (  <_> )  | \/
- |_______ \____/(____  /\_______  /___  /__| |____//____  >\___  >____  /__|  \____/|__|   
-         \/          \/         \/    \/                \/     \/     \/                   
-          \_Welcome to LuaObfuscator.com   (Alpha 0.10.9) ~  Much Love, Ferib 
+-- Reaver Vandal replacer (same engine as dragon_skin.lua / archrambit_skin.lua)
+-- Meshes, sounds + icons are all downloaded from GitHub the first time and cached in <executor workspace>/Vandal/
+--
+-- Credits: Sounds + model - @𝕯𝖊𝖒𝖔𝖓𝖙
+--          Splitting the model up + baking textures + config work - @randomck23
 
-]]--
-
-local v0=[==[
+local CONFIG = [==[
 {
   "replacement_rules": [
     {
@@ -39,4 +34,380 @@ local v0=[==[
     }
   ]
 }
-]==];local v1="Vandal";local v2=1.35;local v3="native";local v4=false;local v5=0;local v6=15;local v7=false;local v8={};for v48,v49 in ipairs({{"isfile",isfile},{"writefile",writefile},{"getcustomasset",getcustomasset},{"makefolder",makefolder},{"isfolder",isfolder}}) do if (type(v49[2])~="function") then v8[ #v8 + 1 ]=v49[1];end end if ( #v8>0) then warn("[Vandal] executor is missing: "   .. table.concat(v8,", ")   .. " - cannot run" );return;end if  not isfolder(v1) then pcall(makefolder,v1);end if (v7 and listfiles and delfile) then for v123,v124 in ipairs(listfiles(v1)) do if  not v124:lower():find("%.mesh$") then pcall(delfile,v124);end end print("[Vandal] download cache cleared");end local v9=game:GetService("HttpService");local v10=game:GetService("AssetService");local v11=v9:JSONDecode(v0).replacement_rules;local v12,v13,v14={},{},{};local v15,v16,v17=0,0,0;local v18={};local function v19(v50) return tonumber(tostring(v50):match("(%d+)"));end local function v20(v51) if v13[v51] then return v13[v51];end for v105=1,5 do if isfile(v51) then local v137,v138=pcall(getcustomasset,v51);if (v137 and v138) then v13[v51]=v138;return v138;end end task.wait(0.3);end return nil;end local function v21(v52) local v53=5381;for v106=1, #v52 do v53=((v53 * 33) + v52:byte(v106))%4294967296 ;end return string.format("%08x",v53);end local function v22(v54) local v55,v56=pcall(function() return game:HttpGet(v54);end);if (v55 and (type(v56)=="string") and ( #v56>0)) then return v56;end local v57=request or http_request or (syn and syn.request) ;if v57 then local v125,v126=pcall(v57,{Url=v54,Method="GET"});if (v125 and v126 and (v126.StatusCode==200) and (type(v126.Body)=="string") and ( #v126.Body>0)) then return v126.Body;end end return nil;end local function v23(v58) local v59=v58:gsub("%?.*$","");local v60=v59:match("[^/]+$") or v59 ;local v61=(v59:match("%.(%w+)$") or "bin"):lower();local v62=v1   .. "/"   .. v21(v58)   .. "."   .. v61 ;if  not isfile(v62) then print("[Vandal] downloading "   .. v60 );local v127=v22(v58);if  not v127 then v18[ #v18 + 1 ]=v60   .. " (download failed)" ;return nil;end if (( #v127<200) and v127:find("404")) then v18[ #v18 + 1 ]=v60   .. " (404 not found)" ;return nil;end if  not pcall(writefile,v62,v127) then v18[ #v18 + 1 ]=v60   .. " (could not save)" ;return nil;end end local v63=v20(v62);if  not v63 then v18[ #v18 + 1 ]=v60   .. " (getcustomasset failed)" ;end return v63;end local function v24(v64) if (v64.mode=="local") then local v129=v20(v64.local_path);if  not v129 then v18[ #v18 + 1 ]=v64.local_path   .. " (not found in workspace)" ;end return v129;end if (v64.mode=="cdn") then return v23(v64.cdn_url);end if v64.with_id then return "rbxassetid://"   .. v64.with_id ;end return "";end local function v25(v65,v66) for v107,v108 in ipairs(v65) do if (v108.type=="group") then v25(v108.children or {} ,v66);elseif v108.enabled then v66[ #v66 + 1 ]=v108;end end return v66;end local v26=v25(v11,{});local v27={};local v28= #v26;for v67,v68 in ipairs(v26) do task.spawn(function() local v109,v110=pcall(v24,v68);if v109 then v27[v67]=v110;end v28-=1 end);end while v28>0  do task.wait();end local v29={};for v69,v70 in ipairs(v26) do local v71=v27[v69];if (v71==nil) then v16+=1 else v15+=1 local v130=(v70.mode=="cdn") and (tostring(v70.cdn_url):lower():gsub("%?.*$",""):find("%.mesh$")~=nil) ;if v130 then v29[v71]=true;end for v140,v141 in ipairs(v70.replace_ids) do local v142=v19(v141);if v142 then v12[v142]={target=v71,baked=v130};end end end end local v30=0;for v72 in pairs(v29) do v30+=1 task.spawn(function() pcall(function() v14[v72]=v10:CreateMeshPartAsync(v72);end);v30-=1 end);end local v31=os.clock();while (v30>0) and ((os.clock() -v31)<15)  do task.wait();end print(("[Vandal] rules registered: %d, skipped: %d"):format(v15,v16));for v73,v74 in ipairs(v18) do warn("[Vandal] FAILED: "   .. v74 );end local v32={MeshPart={"MeshId"},SpecialMesh={"MeshId"},Sound={"SoundId"},Decal={"Texture"},Texture={"Texture"},ImageLabel={"Image"},ImageButton={"Image"}};local v33={Sound=true,ImageLabel=true,ImageButton=true};local v34=setmetatable({},{__mode="k"});local v35=setmetatable({},{__mode="k"});local v36=setmetatable({},{__mode="k"});local v37=setmetatable({},{__mode="k"});local function v38(v75,v76) return v75[v76];end local function v39(v77) pcall(function() if v77:IsA("MeshPart") then v77.Transparency=1;elseif v77:IsA("SpecialMesh") then v77.Scale=Vector3.new(0,0,0);end end);end local function v40(v78,v79) if v78:IsA("MeshPart") then local v132,v133=pcall(function() local v144=v14[v79];if  not v144 then v144=v10:CreateMeshPartAsync(v79);v14[v79]=v144;end v78:ApplyMesh(v144);end);if  not v132 then warn("[Vandal] ApplyMesh failed: "   .. tostring(v133) );pcall(function() v78.MeshId=v79;end);end else pcall(function() v78.MeshId=v79;end);end end local function v41(v80,v81) if  not v80:IsA("MeshPart") then return;end if  not v36[v80] then v36[v80]=v80.Size;end local v82=v36[v80];task.wait(0.1);pcall(function() if (v3=="keep") then v80.Size=v82 * v2 ;else local v147=v14[v81];if v147 then v80.Size=v147.Size * v2 ;end end end);end local function v42(v83) local v84=v83:IsA("MeshPart");local v85=(v84 and "TextureID") or "TextureId" ;pcall(function() v83[v85]="";end);pcall(function() if v84 then v83.Color=Color3.new(1,1,1);else v83.VertexColor=Vector3.new(1,1,1);end end);for v112,v113 in ipairs(v83:GetChildren()) do if v113:IsA("SurfaceAppearance") then v113:Destroy();end end if  not v35[v83] then v35[v83]=true;v83.ChildAdded:Connect(function(v150) if v150:IsA("SurfaceAppearance") then task.defer(function() pcall(function() v150:Destroy();end);end);end end);pcall(function() v83:GetPropertyChangedSignal(v85):Connect(function() if (v83[v85]~="") then pcall(function() v83[v85]="";end);end end);end);end end local function v43(v86,v87,v88,v89) local v90=v88.target;v17+=1 if (v17<=15) then print("[Vandal] swapped "   .. v86.ClassName   .. "."   .. v87   .. " ("   .. tostring(v89)   .. ")" );end if (v87=="MeshId") then if (v90=="") then v39(v86);else v40(v86,v90);if v88.baked then v42(v86);v41(v86,v90);end end else pcall(function() v86[v87]=v90;end);end end local function v44(v91,v92) local v93,v94=pcall(v38,v91,v92);if ( not v93 or (v94=="")) then return false;end local v95=v19(v94);local v96=v95 and v12[v95] ;if  not v96 then return false;end task.spawn(v43,v91,v92,v96,v95);return true;end local function v45(v97) local v98=v32[v97.ClassName];if ( not v98 or v34[v97]) then return;end v34[v97]=true;local v100=v4 or v33[v97.ClassName] ;for v114=1, #v98 do local v115=v98[v114];local v116=v44(v97,v115);if (v116 or v100) then pcall(function() v97:GetPropertyChangedSignal(v115):Connect(function() v44(v97,v115);end);end);end end end local function v46() local v101=0;for v117,v118 in ipairs(game:GetDescendants()) do v45(v118);v101+=1 if ((v101%1000)==0) then task.wait();end end end local function v47() if (type(getnilinstances)~="function") then return;end local v102,v103=pcall(getnilinstances);if  not v102 then return;end local v104=0;for v119,v120 in ipairs(v103) do if  not v37[v120] then v37[v120]=true;v45(v120);for v158,v159 in ipairs(v120:GetDescendants()) do v45(v159);v104+=1 if ((v104%1000)==0) then task.wait();end end end end end game.DescendantAdded:Connect(v45);task.spawn(function() v46();v47();print("[Vandal] initial scan done");end);if (v5>0) then task.spawn(function() while true do task.wait(v5);v46();end end);end if (v6>0) then task.spawn(function() while true do task.wait(v6);v47();end end);end print("[Vandal] loaded");
+]==]
+
+local FOLDER = "Vandal"
+local SCALE = 1.35      -- size multiplier for the replaced meshes
+-- "native" = each mesh uses its own real size (x SCALE)  <- try this first
+-- "keep"   = keep the old part's size (x SCALE), mesh gets fitted into it
+local SIZE_MODE = "native"
+-- performance settings
+local WATCH_ALL = false        -- true = listen for changes on EVERY mesh/decal (old behaviour, laggy). false = only on matched ones
+local RESCAN_INTERVAL = 0      -- seconds between full rescans of the game. 0 = off (DescendantAdded already catches new parts)
+local NIL_SCAN_INTERVAL = 15   -- seconds between scans of nil-parented instances. 0 = off
+local REFRESH = false       -- true = delete cached sound/icon downloads and download again
+
+---------------------------------------------------------------------
+local missing = {}
+for _, p in ipairs({
+	{ "isfile", isfile }, { "writefile", writefile }, { "getcustomasset", getcustomasset },
+	{ "makefolder", makefolder }, { "isfolder", isfolder },
+}) do
+	if type(p[2]) ~= "function" then missing[#missing + 1] = p[1] end
+end
+if #missing > 0 then
+	warn("[Vandal] executor is missing: " .. table.concat(missing, ", ") .. " - cannot run")
+	return
+end
+
+if not isfolder(FOLDER) then pcall(makefolder, FOLDER) end
+if REFRESH and listfiles and delfile then
+	for _, f in ipairs(listfiles(FOLDER)) do
+		if not f:lower():find("%.mesh$") then pcall(delfile, f) end -- keeps your meshes
+	end
+	print("[Vandal] download cache cleared")
+end
+
+local HttpService = game:GetService("HttpService")
+local AssetService = game:GetService("AssetService")
+local rules = HttpService:JSONDecode(CONFIG).replacement_rules
+local lookup, cache, meshCache = {}, {}, {}
+local registered, skipped, swapped = 0, 0, 0
+local failedList = {}
+
+local function parseId(v)
+	return tonumber(tostring(v):match("(%d+)"))
+end
+
+local function loadAsset(path)
+	if cache[path] then return cache[path] end
+	for _ = 1, 5 do
+		if isfile(path) then
+			local ok, asset = pcall(getcustomasset, path)
+			if ok and asset then
+				cache[path] = asset
+				return asset
+			end
+		end
+		task.wait(0.3)
+	end
+	return nil
+end
+
+---------------------------------------------------------------------
+-- downloads (meshes + sounds + icons)
+local function hashStr(s)
+	local h = 5381
+	for i = 1, #s do h = (h * 33 + s:byte(i)) % 4294967296 end
+	return string.format("%08x", h)
+end
+
+local function download(url)
+	local ok, res = pcall(function() return game:HttpGet(url) end)
+	if ok and type(res) == "string" and #res > 0 then return res end
+	local req = request or http_request or (syn and syn.request)
+	if req then
+		local ok2, r = pcall(req, { Url = url, Method = "GET" })
+		if ok2 and r and r.StatusCode == 200 and type(r.Body) == "string" and #r.Body > 0 then
+			return r.Body
+		end
+	end
+	return nil
+end
+
+local function loadCdn(url)
+	local clean = url:gsub("%?.*$", "")
+	local name = clean:match("[^/]+$") or clean
+	local ext = (clean:match("%.(%w+)$") or "bin"):lower()
+	local path = FOLDER .. "/" .. hashStr(url) .. "." .. ext
+
+	if not isfile(path) then
+		print("[Vandal] downloading " .. name)
+		local data = download(url)
+		if not data then
+			failedList[#failedList + 1] = name .. " (download failed)"
+			return nil
+		end
+		if #data < 200 and data:find("404") then
+			failedList[#failedList + 1] = name .. " (404 not found)"
+			return nil
+		end
+		if not pcall(writefile, path, data) then
+			failedList[#failedList + 1] = name .. " (could not save)"
+			return nil
+		end
+	end
+	local asset = loadAsset(path)
+	if not asset then failedList[#failedList + 1] = name .. " (getcustomasset failed)" end
+	return asset
+end
+
+---------------------------------------------------------------------
+-- rules
+local function resolve(rule)
+	if rule.mode == "local" then
+		local asset = loadAsset(rule.local_path)
+		if not asset then failedList[#failedList + 1] = rule.local_path .. " (not found in workspace)" end
+		return asset
+	end
+	if rule.mode == "cdn" then return loadCdn(rule.cdn_url) end
+	if rule.with_id then return "rbxassetid://" .. rule.with_id end
+	return ""
+end
+
+local function flatten(list, out)
+	for _, r in ipairs(list) do
+		if r.type == "group" then
+			flatten(r.children or {}, out)
+		elseif r.enabled then
+			out[#out + 1] = r
+		end
+	end
+	return out
+end
+
+-- resolve every rule at the same time
+local active = flatten(rules, {})
+local targets = {}
+local pending = #active
+for i, rule in ipairs(active) do
+	task.spawn(function()
+		local ok, res = pcall(resolve, rule)
+		if ok then targets[i] = res end
+		pending -= 1
+	end)
+end
+while pending > 0 do task.wait() end
+
+local meshAssets = {}
+for i, rule in ipairs(active) do
+	local target = targets[i]
+	if target == nil then
+		skipped += 1
+	else
+		registered += 1
+		-- .mesh files carry baked vertex colours, so they need the old texture removed
+		local baked = rule.mode == "cdn" and tostring(rule.cdn_url):lower():gsub("%?.*$", ""):find("%.mesh$") ~= nil
+		if baked then meshAssets[target] = true end
+		for _, id in ipairs(rule.replace_ids) do
+			local n = parseId(id)
+			if n then lookup[n] = { target = target, baked = baked } end
+		end
+	end
+end
+
+-- pre-load the meshes so the swap is instant
+local warming = 0
+for asset in pairs(meshAssets) do
+	warming += 1
+	task.spawn(function()
+		pcall(function() meshCache[asset] = AssetService:CreateMeshPartAsync(asset) end)
+		warming -= 1
+	end)
+end
+local t0 = os.clock()
+while warming > 0 and os.clock() - t0 < 15 do task.wait() end
+
+print(("[Vandal] rules registered: %d, skipped: %d"):format(registered, skipped))
+for _, f in ipairs(failedList) do warn("[Vandal] FAILED: " .. f) end
+
+---------------------------------------------------------------------
+-- apply
+local PROPS = {
+	MeshPart = { "MeshId" },
+	SpecialMesh = { "MeshId" },
+	Sound = { "SoundId" },
+	Decal = { "Texture" },
+	Texture = { "Texture" },
+	ImageLabel = { "Image" },
+	ImageButton = { "Image" },
+}
+-- classes whose id changes at runtime (inventory icons, sounds reused by the game)
+local WATCH_ALWAYS = { Sound = true, ImageLabel = true, ImageButton = true }
+
+local seen = setmetatable({}, { __mode = "k" })
+local watched = setmetatable({}, { __mode = "k" })
+local keepSize = setmetatable({}, { __mode = "k" })
+local nilSeen = setmetatable({}, { __mode = "k" })
+
+local function getProp(inst, p) return inst[p] end
+
+local function hideMesh(inst)
+	pcall(function()
+		if inst:IsA("MeshPart") then
+			inst.Transparency = 1
+		elseif inst:IsA("SpecialMesh") then
+			inst.Scale = Vector3.new(0, 0, 0)
+		end
+	end)
+end
+
+local function applyMesh(inst, asset)
+	if inst:IsA("MeshPart") then
+		local ok, err = pcall(function()
+			local mp = meshCache[asset]
+			if not mp then
+				mp = AssetService:CreateMeshPartAsync(asset)
+				meshCache[asset] = mp
+			end
+			inst:ApplyMesh(mp)
+		end)
+		if not ok then
+			warn("[Vandal] ApplyMesh failed: " .. tostring(err))
+			pcall(function() inst.MeshId = asset end)
+		end
+	else
+		pcall(function() inst.MeshId = asset end)
+	end
+end
+
+-- size the part so the mesh isn't stretched into the old part's box
+local function sizeMesh(inst, asset)
+	if not inst:IsA("MeshPart") then return end
+	if not keepSize[inst] then keepSize[inst] = inst.Size end
+	local ref = keepSize[inst]
+	task.wait(0.1)
+	pcall(function()
+		if SIZE_MODE == "keep" then
+			inst.Size = ref * SCALE
+		else
+			local mp = meshCache[asset]
+			if mp then inst.Size = mp.Size * SCALE end
+		end
+	end)
+end
+
+-- the mesh has its colours baked in, so remove the old texture and keep it removed
+local function bake(inst)
+	local isMeshPart = inst:IsA("MeshPart")
+	local tprop = isMeshPart and "TextureID" or "TextureId"
+	pcall(function() inst[tprop] = "" end)
+	pcall(function()
+		if isMeshPart then
+			inst.Color = Color3.new(1, 1, 1)
+		else
+			inst.VertexColor = Vector3.new(1, 1, 1)
+		end
+	end)
+	for _, c in ipairs(inst:GetChildren()) do
+		if c:IsA("SurfaceAppearance") then c:Destroy() end
+	end
+	if not watched[inst] then
+		watched[inst] = true
+		inst.ChildAdded:Connect(function(c)
+			if c:IsA("SurfaceAppearance") then
+				task.defer(function() pcall(function() c:Destroy() end) end)
+			end
+		end)
+		pcall(function()
+			inst:GetPropertyChangedSignal(tprop):Connect(function()
+				if inst[tprop] ~= "" then pcall(function() inst[tprop] = "" end) end
+			end)
+		end)
+	end
+end
+
+-- does the heavy work (may yield) for an instance that matched a rule
+local function process(inst, p, entry, id)
+	local new = entry.target
+	swapped += 1
+	if swapped <= 15 then
+		print("[Vandal] swapped " .. inst.ClassName .. "." .. p .. " (" .. tostring(id) .. ")")
+	end
+
+	if p == "MeshId" then
+		if new == "" then
+			hideMesh(inst)
+		else
+			applyMesh(inst, new)
+			if entry.baked then
+				bake(inst)
+				sizeMesh(inst, new)
+			end
+		end
+	else
+		pcall(function() inst[p] = new end)
+	end
+end
+
+-- cheap check; returns true if the instance matched a rule
+local function handle(inst, p)
+	local ok, cur = pcall(getProp, inst, p)
+	if not ok or cur == "" then return false end
+	local id = parseId(cur)
+	local entry = id and lookup[id]
+	if not entry then return false end
+	task.spawn(process, inst, p, entry, id)
+	return true
+end
+
+local function apply(inst)
+	local props = PROPS[inst.ClassName]
+	if not props or seen[inst] then return end
+	seen[inst] = true
+	local always = WATCH_ALL or WATCH_ALWAYS[inst.ClassName]
+	for i = 1, #props do
+		local p = props[i]
+		local matched = handle(inst, p)
+		-- only listen for changes where it matters (matched parts, UI images, sounds)
+		if matched or always then
+			pcall(function()
+				inst:GetPropertyChangedSignal(p):Connect(function() handle(inst, p) end)
+			end)
+		end
+	end
+end
+
+local function scan()
+	local n = 0
+	for _, d in ipairs(game:GetDescendants()) do
+		apply(d)
+		n += 1
+		if n % 1000 == 0 then task.wait() end
+	end
+end
+
+local function scanNil()
+	if type(getnilinstances) ~= "function" then return end
+	local ok, list = pcall(getnilinstances)
+	if not ok then return end
+	local n = 0
+	for _, d in ipairs(list) do
+		if not nilSeen[d] then -- each nil root is only walked once
+			nilSeen[d] = true
+			apply(d)
+			for _, c in ipairs(d:GetDescendants()) do
+				apply(c)
+				n += 1
+				if n % 1000 == 0 then task.wait() end
+			end
+		end
+	end
+end
+
+game.DescendantAdded:Connect(apply)
+task.spawn(function()
+	scan()
+	scanNil()
+	print("[Vandal] initial scan done")
+end)
+
+-- optional slow background passes
+if RESCAN_INTERVAL > 0 then
+	task.spawn(function()
+		while true do
+			task.wait(RESCAN_INTERVAL)
+			scan()
+		end
+	end)
+end
+if NIL_SCAN_INTERVAL > 0 then
+	task.spawn(function()
+		while true do
+			task.wait(NIL_SCAN_INTERVAL)
+			scanNil()
+		end
+	end)
+end
+
+print("[Vandal] loaded")
